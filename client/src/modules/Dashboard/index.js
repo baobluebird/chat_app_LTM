@@ -1,143 +1,100 @@
-import { useEffect, useRef, useState } from 'react';
-import Img1 from '../../assets/img1.jpg';
-import tutorialsdev from '../../assets/tutorialsdev.png';
-import Input from '../../components/Input';
-import { io } from 'socket.io-client';
+import { useEffect, useRef, useState } from 'react'
+import Img1 from '../../assets/img1.jpg'
+import tutorialsdev from '../../assets/tutorialsdev.png'
+import Input from '../../components/Input'
+import { io } from 'socket.io-client'
 
 const Dashboard = () => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user:detail')));
-  const [conversations, setConversations] = useState([]);
-  const [messages, setMessages] = useState({ messages: [] });
-  const [message, setMessage] = useState('');
-  const [users, setUsers] = useState([]);
-  const [socket, setSocket] = useState(null);
-  const messageRef = useRef(null);
+	const [user, setUser] = useState(JSON.parse(localStorage.getItem('user:detail')))
+	const [conversations, setConversations] = useState([])
+	const [messages, setMessages] = useState({})
+	const [message, setMessage] = useState('')
+	const [users, setUsers] = useState([])
+	const [socket, setSocket] = useState(null)
+	const messageRef = useRef(null)
 
-  useEffect(() => {
-    setSocket(io('http://localhost:8080'));
+	useEffect(() => {
+		setSocket(io('http://localhost:8080'))
+	}, [])
 
-    return () => {
-      socket?.disconnect();
-    };
-  }, [socket]);
+	useEffect(() => {
+		socket?.emit('addUser', user?.id);
+		socket?.on('getUsers', users => {
+			console.log('activeUsers :>> ', users);
+		})
+		socket?.on('getMessage', data => {
+			setMessages(prev => ({
+				...prev,
+				messages: [...prev.messages, { user: data.user, message: data.message }]
+			}))
+		})
+	}, [socket])
 
-  useEffect(() => {
-    socket?.emit('addUser', user?.id);
+	useEffect(() => {
+		messageRef?.current?.scrollIntoView({ behavior: 'smooth' })
+	}, [messages?.messages])
 
-    const setupSocketListeners = () => {
-      socket?.on('getUsers', (activeUsers) => {
-        console.log('activeUsers :>> ', activeUsers);
-      });
+	useEffect(() => {
+		const loggedInUser = JSON.parse(localStorage.getItem('user:detail'))
+		const fetchConversations = async () => {
+			const res = await fetch(`http://localhost:8000/api/conversations/${loggedInUser?.id}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				}
+			});
+			const resData = await res.json()
+			setConversations(resData)
+		}
+		fetchConversations()
+	}, [])
 
-      socket?.on('getMessage', (data) => {
-        setMessages((prev) => ({
-          ...prev,
-          messages: [...prev.messages, { user: data.user, message: data.message }],
-        }));
-      });
-    };
+	useEffect(() => {
+		const fetchUsers = async () => {
+			const res = await fetch(`http://localhost:8000/api/users/${user?.id}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				}
+			});
+			const resData = await res.json()
+			setUsers(resData)
+		}
+		fetchUsers()
+	}, [])
 
-    setupSocketListeners();
-
-    return () => {
-      socket?.off('getUsers');
-      socket?.off('getMessage');
-    };
-  }, [socket, user]);
-
-  useEffect(() => {
-	if (messages?.messages.length > 0 && messageRef.current) {
-	  messageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+	const fetchMessages = async (conversationId, receiver) => {
+		const res = await fetch(`http://localhost:8000/api/message/${conversationId}?senderId=${user?.id}&&receiverId=${receiver?.receiverId}`, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+			}
+		});
+		const resData = await res.json()
+		setMessages({ messages: resData, receiver, conversationId })
 	}
-  }, [messages?.messages]);
-  
 
-  useEffect(() => {
-    const loggedInUser = JSON.parse(localStorage.getItem('user:detail'));
-
-    const fetchConversations = async () => {
-      try {
-        const res = await fetch(`http://localhost:8000/api/conversations/${loggedInUser?.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const resData = await res.json();
-        setConversations(resData);
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      }
-    };
-
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch(`http://localhost:8000/api/users/${user?.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        const resData = await res.json();
-        setUsers(resData);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-
-    fetchConversations();
-    fetchUsers();
-  }, [user]);
-
-  const fetchMessages = async (conversationId, receiver) => {
-    try {
-      const res = await fetch(
-        `http://localhost:8000/api/message/${conversationId}?senderId=${user?.id}&&receiverId=${receiver?.receiverId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      const resData = await res.json();
-      setMessages({ messages: resData, receiver, conversationId });
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
-
-  const sendMessage = async () => {
-	try {
-	  setMessage('');
-	  socket?.emit('sendMessage', {
-		senderId: user?.id,
-		receiverId: messages?.receiver?.receiverId,
-		message,
-		conversationId: messages?.conversationId,
-	  });
-  
-	  const response = await fetch('http://localhost:8000/api/message', {
-		method: 'POST',
-		headers: {
-		  'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-		  conversationId: messages?.conversationId,
-		  senderId: user?.id,
-		  message,
-		  receiverId: messages?.receiver?.receiverId,
-		}),
-	  });
-  
-	  if (!response.ok) {
-		console.error('Error sending message:', response.status, response.statusText);
-	  }
-	} catch (error) {
-	  console.error('Error sending message:', error);
+	const sendMessage = async (e) => {
+		setMessage('')
+		socket?.emit('sendMessage', {
+			senderId: user?.id,
+			receiverId: messages?.receiver?.receiverId,
+			message,
+			conversationId: messages?.conversationId
+		});
+		const res = await fetch(`http://localhost:8000/api/message`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				conversationId: messages?.conversationId,
+				senderId: user?.id,
+				message,
+				receiverId: messages?.receiver?.receiverId
+			})
+		});
 	}
-  };
-  
 
 	return (
 		<div className='w-screen flex'>
