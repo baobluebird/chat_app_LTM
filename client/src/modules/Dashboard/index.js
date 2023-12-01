@@ -3,6 +3,8 @@ import Img1 from '../../assets/img1.jpg'
 import tutorialsdev from '../../assets/tutorialsdev.png'
 import Input from '../../components/Input'
 import { io } from 'socket.io-client'
+import { MdLogout } from "react-icons/md";
+import { useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
 	const [user, setUser] = useState(JSON.parse(localStorage.getItem('user:detail')))
@@ -12,16 +14,26 @@ const Dashboard = () => {
 	const [users, setUsers] = useState([])
 	const [socket, setSocket] = useState(null)
 	const messageRef = useRef(null)
+	const [activeUsers, setActiveUsers] = useState([]);
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		setSocket(io('http://localhost:8080'))
 	}, [])
 
+	// useEffect(() => {
+	// 	socket?.on('getUsers', (users) => {
+	// 	  console.log('activeUsers :>> ', users);
+	// 	  setActiveUsers(users);
+	// 	});
+	//   }, []);
+	  
 	useEffect(() => {
 		socket?.emit('addUser', user?.id);
-		socket?.on('getUsers', users => {
+		socket?.on('getUsers', (users) => {
 			console.log('activeUsers :>> ', users);
-		})
+			setActiveUsers(users);
+		  });
 		socket?.on('getMessage', data => {
 			setMessages(prev => ({
 				...prev,
@@ -104,31 +116,38 @@ const Dashboard = () => {
 					<div className='ml-8'>
 						<h3 className='text-2xl'>{user?.fullName}</h3>
 						<p className='text-lg font-light'>My Account</p>
+						<div>
+							<MdLogout className='text-2xl cursor-pointer' onClick={() => {
+								localStorage.removeItem('user:token')
+								localStorage.removeItem('user:detail')
+								window.location.reload()
+								navigate('/users/sign_in')
+							}} />
+						</div>
 					</div>
 				</div>
 				<hr />
 				<div className='mx-14 mt-10'>
-					<div className='text-primary text-lg'>Messages</div>
-					<div>
-						{
-							conversations.length > 0 ?
-								conversations.map(({ conversationId, user }) => {
-									return (
-										<div className='flex items-center py-8 border-b border-b-gray-300'>
-											<div className='cursor-pointer flex items-center' onClick={() => fetchMessages(conversationId, user)}>
-												<div><img src={Img1} className="w-[60px] h-[60px] rounded-full p-[2px] border border-primary" /></div>
-												<div className='ml-6'>
-													<h3 className='text-lg font-semibold'>{user?.fullName}</h3>
-													<p className='text-sm font-light text-gray-600'>{user?.email}</p>
-												</div>
-											</div>
-										</div>
-									)
-								}) : <div className='text-center text-lg font-semibold mt-24'>No Conversations</div>
-						}
-					</div>
-				</div>
-			</div>
+				<div className='text-primary text-lg'>Active Users</div>
+        <div>
+          {activeUsers.length > 0? (
+            activeUsers.map((user) => (
+              <div  className='flex items-center py-8 border-b border-b-gray-300'>
+                <div className='cursor-pointer flex items-center'>
+                  <div><img src={Img1} className="w-[60px] h-[60px] rounded-full p-[2px] border border-primary" /></div>
+                  <div className='ml-6'>
+                    <h3 className='text-lg font-semibold'>{user?.nameUser}</h3>
+                    <p className='text-sm font-light text-gray-600'>{user?.emailUser}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className='text-center text-lg font-semibold mt-24'>No Active Users</div>
+          )}
+        </div>
+      </div>
+    </div>
 			<div className='w-[50%] h-screen bg-white flex flex-col items-center'>
 				{
 					messages?.receiver?.fullName &&

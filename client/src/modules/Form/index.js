@@ -1,11 +1,24 @@
-import { useState } from "react"
+import {useEffect, useState } from "react"
 import Button from "../../components/Button"
 import Input from "../../components/Input"
 import { useNavigate } from 'react-router-dom'
+import { io } from 'socket.io-client'
+
+
 
 const Form = ({
     isSignInPage = true,
 }) => {
+
+    const [socket, setSocket] = useState(null)
+    const [userId, setUserId] = useState()
+
+    useEffect(() => {
+		setSocket(io('http://localhost:8080'))
+	}, [])
+
+    
+    
     const [data, setData] = useState({
         ...(!isSignInPage && {
             fullName: ''
@@ -15,19 +28,36 @@ const Form = ({
     })
     const navigate = useNavigate()
 
+    
+
     const handleSubmit = async(e) => {
         console.log('data :>> ', data);
+
+        
+
+        console.log('userId :>> ', userId);
+
         e.preventDefault()
-        const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
+        if(userId){
+            alert('User already exists')
+        }else{
+            const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
-        })
+        }
+        )
 
         if(res.status === 400) {
-            alert('Invalid credentials')
+            socket?.on('UserAlreadyExists', (userId) => {
+                console.log('UserAlreadyExists :>> ', userId);  
+            });
+            if(userId){
+                alert('User already exists')
+            }
+            alert('Invalid credentials');
         }else{
             const resData = await res.json()
             if(resData.token) {
@@ -35,6 +65,7 @@ const Form = ({
                 localStorage.setItem('user:detail', JSON.stringify(resData.user))
                 navigate('/')
             }
+        }
         }
     }
   return (

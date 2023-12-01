@@ -38,12 +38,20 @@ const port = process.env.PORT || 8000;
 let users = [];
 io.on('connection', socket => {
     console.log('User connected', socket.id);
-    socket.on('addUser', userId => {
+    
+    socket.on('addUser', async userId => {
+        const checkuser = await Users.findById(userId);
+        nameUser = checkuser.fullName;
+        emailUser = checkuser.email;
         const isUserExist = users.find(user => user.userId === userId);
         if (!isUserExist) {
-            const user = { userId, socketId: socket.id };
+            console.log('User added', socket.id);
+            const user = { userId, nameUser, emailUser, socketId: socket.id };
             users.push(user);
             io.emit('getUsers', users);
+        }else{
+            console.log('User already exists');
+            io.emit('UserAlreadyExists', userId);
         }
     });
 
@@ -76,7 +84,7 @@ io.on('connection', socket => {
         users = users.filter(user => user.socketId !== socket.id);
         io.emit('getUsers', users);
     });
-    // io.emit('getUsers', socket.userId);
+    //io.emit('getUsers', socket.userId);
 });
 
 // Routes
@@ -222,6 +230,19 @@ app.get('/api/message/:conversationId', async (req, res) => {
 })
 
 app.get('/api/users/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const users = await Users.find({ _id: { $ne: userId } });
+        const usersData = Promise.all(users.map(async (user) => {
+            return { user: { email: user.email, fullName: user.fullName, receiverId: user._id } }
+        }))
+        res.status(200).json(await usersData);
+    } catch (error) {
+        console.log('Error', error)
+    } 
+})
+
+app.get('/api/getAllusers/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
         const users = await Users.find({ _id: { $ne: userId } });
