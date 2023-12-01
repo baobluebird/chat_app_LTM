@@ -18,7 +18,7 @@ mongoose
 
   .catch((err) => {
     console.log("Cannot connect to the database!", err);
-    process.exit(); ///ấdsad
+    process.exit(); 
   });
 
 // Import Files
@@ -51,7 +51,7 @@ io.on('connection', socket => {
         const receiver = users.find(user => user.userId === receiverId);
         const sender = users.find(user => user.userId === senderId);
         const user = await Users.findById(senderId);
-        console.log('sender :>> ', sender, receiver);
+        console.log('sender :>> ', sender, receiver);    
         if (receiver) {
             io.to(receiver.socketId).to(sender.socketId).emit('getMessage', {
                 senderId,
@@ -72,6 +72,7 @@ io.on('connection', socket => {
         });
 
     socket.on('disconnect', () => {
+        console.log('User disconnected', socket.id);
         users = users.filter(user => user.socketId !== socket.id);
         io.emit('getUsers', users);
     });
