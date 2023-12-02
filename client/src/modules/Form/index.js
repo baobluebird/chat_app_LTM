@@ -1,73 +1,64 @@
-import {useEffect, useState } from "react"
-import Button from "../../components/Button"
-import Input from "../../components/Input"
-import { useNavigate } from 'react-router-dom'
-import { io } from 'socket.io-client'
-
-
+import { useEffect, useState } from "react";
+import Button from "../../components/Button";
+import Input from "../../components/Input";
+import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 
 const Form = ({
     isSignInPage = true,
 }) => {
+  const [socket, setSocket] = useState(null);
 
-    const [socket, setSocket] = useState(null)
-    const [userId, setUserId] = useState()
-
-    useEffect(() => {
-		setSocket(io('http://localhost:8080'))
-	}, [])
-
-    
-    
-    const [data, setData] = useState({
-        ...(!isSignInPage && {
-            fullName: ''
-        }),
-        email: '',
-        password: ''
-    })
-    const navigate = useNavigate()
-
-    
-
-    const handleSubmit = async(e) => {
-        console.log('data :>> ', data);
-
-        
-
-        console.log('userId :>> ', userId);
-
-        e.preventDefault()
-        if(userId){
-            alert('User already exists')
-        }else{
-            const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }
-        )
-
-        if(res.status === 400) {
-            socket?.on('UserAlreadyExists', (userId) => {
-                console.log('UserAlreadyExists :>> ', userId);  
-            });
-            if(userId){
-                alert('User already exists')
-            }
-            alert('Invalid credentials');
-        }else{
-            const resData = await res.json()
-            if(resData.token) {
-                localStorage.setItem('user:token', resData.token)
-                localStorage.setItem('user:detail', JSON.stringify(resData.user))
-                navigate('/')
-            }
-        }
-        }
+  useEffect(() => {
+    setSocket(io("http://localhost:8080"));
+    if(socket){
+      console.log('socket :>> ', socket.connected);
     }
+  }, []);
+
+
+  const [data, setData] = useState({
+    ...(!isSignInPage && {
+        fullName: ''
+    }),
+    email: '',
+    password: ''
+})
+
+  const navigate = useNavigate()
+
+  const handleSubmit = async(e) => {
+      console.log('data :>> ', data);
+      e.preventDefault()
+      if(isSignInPage == 'login'){
+        socket?.emit("UserLogin", data);
+      }else{
+        socket?.emit("UserRegister", data);
+      }
+
+
+      // const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
+      //     method: 'POST',
+      //     headers: {
+      //         'Content-Type': 'application/json'
+      //     },
+      //     body: JSON.stringify(data)
+      // })
+
+      // if (res.status === 400) {
+      //   alert("Invalid credentials");
+      // } else {
+      //   const resData = await res.json();
+      //   if (resData.token) {
+      //     localStorage.setItem("user:token", resData.token);
+      //     localStorage.setItem("user:detail", JSON.stringify(resData.user));
+      //     navigate("/");
+      //   }else{
+
+      //   }
+      // }
+  };
+
   return (
     <div className="bg-light h-screen flex items-center justify-center">
         <div className=" bg-white w-[600px] h-[800px] shadow-lg rounded-lg flex flex-col justify-center items-center">

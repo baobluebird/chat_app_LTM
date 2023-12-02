@@ -15,6 +15,7 @@ const Dashboard = () => {
 	const [socket, setSocket] = useState(null)
 	const messageRef = useRef(null)
 	const [activeUsers, setActiveUsers] = useState([]);
+	const [logoutUserAlreadyExists, setLogoutUserAlreadyExists] = useState(false);
 	const navigate = useNavigate()
 
 	useEffect(() => {
@@ -34,6 +35,15 @@ const Dashboard = () => {
 			console.log('activeUsers :>> ', users);
 			setActiveUsers(users);
 		  });
+		  socket?.on("UserAlreadyExists", (users) => {
+            console.log("users already exist:>> ", users);
+			// if(users.userId){
+			// 	localStorage.removeItem('user:token')
+			// 	localStorage.removeItem('user:detail')
+			// 	window.location.reload()
+			// 	navigate('/users/sign_in')
+			// }
+          });
 		socket?.on('getMessage', data => {
 			setMessages(prev => ({
 				...prev,

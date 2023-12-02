@@ -37,21 +37,56 @@ const port = process.env.PORT || 8000;
 // Socket.io
 let users = [];
 io.on('connection', socket => {
-    console.log('User connected', socket.id);
-    
+    console.log('User connected to the server: ', socket.id);
     socket.on('addUser', async userId => {
         const checkuser = await Users.findById(userId);
-        nameUser = checkuser.fullName;
+        nameUser = checkuser.fullName; 
         emailUser = checkuser.email;
+
         const isUserExist = users.find(user => user.userId === userId);
         if (!isUserExist) {
-            console.log('User added', socket.id);
+            console.log('User added to app chat: ', socket.id);
             const user = { userId, nameUser, emailUser, socketId: socket.id };
             users.push(user);
             io.emit('getUsers', users);
         }else{
             console.log('User already exists');
-            io.emit('UserAlreadyExists', userId);
+            const userAlready = {userId, socketId: socket.id}
+            io.emit('UserAlreadyExists', userAlready);
+        }
+    });
+
+    socket.on('UserLogin', async data => {
+        console.log('UserLogin :>> ', data);
+        console.log('socket id:', socket.id)
+        const messageFromServer ='';
+        if (!fullName || !email || !password) {
+            res.status(400).json({
+                message:'Please fill all required fields'
+            });
+        } 
+    }); 
+
+    socket.on('UserRegister', async data => {
+        console.log('UserRegister :>> ', data);  
+        console.log('socket id:', socket.id)
+        const { fullName, email, password } = data;
+        const messageFromServer ='';
+        if (!fullName || !email || !password) {
+            messageFromServer = "Please fill all required fields"
+        }else {
+            const isAlreadyExist = await Users.findOne({ email });
+            if (isAlreadyExist) {
+                messageFromServer = 'User already exists'
+            } else {
+                const newUser = new Users({ fullName, email });
+                bcryptjs.hash(password, 10, (err, hashedPassword) => {
+                    newUser.set('password', hashedPassword);
+                    newUser.save();
+                    next();
+                })
+                messageFromServer = 'User already exists'
+            }
         }
     });
 
@@ -97,11 +132,15 @@ app.post('/api/register', async (req, res, next) => {
         const { fullName, email, password } = req.body;
 
         if (!fullName || !email || !password) {
-            res.status(400).send('Please fill all required fields');
+            res.status(400).json({
+                message:'Please fill all required fields'
+            });
         } else {
             const isAlreadyExist = await Users.findOne({ email });
             if (isAlreadyExist) {
-                res.status(400).send('User already exists');
+                res.status(400).json({
+                    message:'User already exists'
+                });
             } else {
                 const newUser = new Users({ fullName, email });
                 bcryptjs.hash(password, 10, (err, hashedPassword) => {
@@ -109,7 +148,10 @@ app.post('/api/register', async (req, res, next) => {
                     newUser.save();
                     next();
                 })
-                return res.status(200).send('User registered successfully');
+                return res.status(200).json({
+                    message:'User created successfully',
+                    user: newUser._id
+                });
             }
         }
 
