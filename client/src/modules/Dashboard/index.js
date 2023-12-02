@@ -49,13 +49,13 @@ const Dashboard = () => {
 				...prev,
 				messages: [...prev.messages, { user: data.user, message: data.message }]
 			}))
-		})
+		}) 
 	}, [socket])
 
 	useEffect(() => {
 		messageRef?.current?.scrollIntoView({ behavior: 'smooth' })
 	}, [messages?.messages])
-
+ 
 	useEffect(() => {
 		const loggedInUser = JSON.parse(localStorage.getItem('user:detail'))
 		const fetchConversations = async () => {

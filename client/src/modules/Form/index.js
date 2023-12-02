@@ -30,11 +30,27 @@ const Form = ({
   const handleSubmit = async(e) => {
       console.log('data :>> ', data);
       e.preventDefault()
-      if(isSignInPage == 'login'){
+      if(isSignInPage == true){
         socket?.emit("UserLogin", data);
       }else{
         socket?.emit("UserRegister", data);
       }
+      socket?.on('checkUserRegister', (msg) => {
+        console.log('msg :>> ', msg);
+        alert(msg);
+        if(msg =='User registered successfully'){
+        navigate("/users/sign_in")
+        }else{
+          navigate("/users/sign_up")
+        }
+      });
+      socket?.on('checkUserLogin', (msg) => {
+        console.log('msg :>> ', msg);
+        alert(msg.messageFromServer);
+        localStorage.setItem("user:token", msg.token);
+        localStorage.setItem("user:detail", JSON.stringify(msg.user));
+        navigate("/");
+      });
 
 
       // const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
