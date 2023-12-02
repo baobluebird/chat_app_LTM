@@ -27,7 +27,7 @@ const Form = ({
 
   const navigate = useNavigate()
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = (e) => {
       console.log('data :>> ', data);
       e.preventDefault()
       if(isSignInPage == true){
@@ -36,7 +36,7 @@ const Form = ({
         socket?.emit("UserRegister", data);
       }
       socket?.on('checkUserRegister', (msg) => {
-        console.log('msg :>> ', msg);
+        console.log('msg :>> ', msg); 
         alert(msg);
         if(msg =='User registered successfully'){
         navigate("/users/sign_in")
@@ -46,10 +46,20 @@ const Form = ({
       });
       socket?.on('checkUserLogin', (msg) => {
         console.log('msg :>> ', msg);
-        alert(msg.messageFromServer);
-        localStorage.setItem("user:token", msg.token);
-        localStorage.setItem("user:detail", JSON.stringify(msg.user));
-        navigate("/");
+        if(msg.messageFromServer == 'User already exists'){
+          alert('User already exists')
+          navigate("/users/sign_in")
+        }
+        else if(msg.messageFromServer == 'Full User'){
+          alert('Full user Login')
+          navigate("/users/sign_in")
+        }else{
+          alert(msg.messageFromServer);
+          localStorage.setItem("user:token", msg.token);
+          localStorage.setItem("user:detail", JSON.stringify(msg.user));
+          navigate("/");
+        }
+        
       });
 
 

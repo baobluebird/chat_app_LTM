@@ -36,33 +36,49 @@ const port = process.env.PORT || 8000;
 
 // Socket.io
 let users = [];
+let userCheck = [];
 io.on('connection', socket => {
     console.log('User connected to the server: ', socket.id);
     socket.on('addUser', async userId => {
         const checkuser = await Users.findById(userId);
         nameUser = checkuser.fullName; 
         emailUser = checkuser.email;
-
         const isUserExist = users.find(user => user.userId === userId);
         if (!isUserExist) {
             console.log('User added to app chat: ', socket.id);
             const user = { userId, nameUser, emailUser, socketId: socket.id };
             users.push(user);
             io.emit('getUsers', users);
-        }else{
-            console.log('User already exists');
-            const userAlready = {userId, socketId: socket.id}
-            io.emit('UserAlreadyExists', userAlready);
         }
+        // }else{
+        //     console.log('User already exists');
+        //     const userAlready = {userId, socketId: socket.id}
+        //     io.emit('UserAlreadyExists', userAlready);
+        // }
     });
 
     socket.on('UserLogin', async data => {
-        console.log('UserLogin :>> ', data);
-        console.log('socket id:', socket.id)
-        const { email, password } = data;
-        const msg = await Login(email, password);
-        console.log('msg :>> ', msg);
-        io.to(socket.id).emit('checkUserLogin', msg);
+        const checkUser = await Users.findOne({email:data.email});
+        const userId = checkUser._id;
+        const stringUserId = userId.toString();
+        const isUserLogin = userCheck.find(user => user.toString() === stringUserId);
+        if(isUserLogin){
+            console.log('User already exists');
+            io.to(socket.id).emit('checkUserLogin', { messageFromServer: 'User already exists' });
+        }
+        else if(userCheck.length > 1){
+            console.log('Full User');
+            io.to(socket.id).emit('checkUserLogin', { messageFromServer: 'Full User' });
+        }else{ 
+            console.log('UserLogin :>> ', data);
+            //console.log('socket id:', socket.id)
+            userCheck.push(userId);
+            console.log('userCheck Lenght when login:>> ', userCheck);
+            const { email, password } = data;
+            const msg = await Login(email, password);
+            io.to(socket.id).emit('checkUserLogin', msg);
+        }
+        //console.log('Length of user :>> ', userCheck.length);
     }); 
 
     const Login = async (email, password) => {
@@ -157,6 +173,20 @@ io.on('connection', socket => {
     };
 
 
+    socket.on('logout', async userId => {
+        console.log('UserLogout :>> ', userId);
+        const msg = 'User logout successfully';
+    
+        const stringUserId = userId.toString();
+    
+        userCheck = userCheck.filter(user => user.toString() !== stringUserId);
+    
+        console.log('userCheck Length when logout:>> ', userCheck);
+        // console.log('userCheck :>> ', userCheck);
+    
+        io.to(socket.id).emit('logoutUser', msg);
+    });
+
     socket.on('sendMessage', async ({ senderId, receiverId, message, conversationId }) => {
         const receiver = users.find(user => user.userId === receiverId);
         const sender = users.find(user => user.userId === senderId);
@@ -227,42 +257,42 @@ app.get('/', (req, res) => {
 //     }
 // })
 
-app.post('/api/login', async (req, res, next) => {
-    try {
-        const { email, password } = req.body;
+// app.post('/api/login', async (req, res, next) => {
+//     try {
+//         const { email, password } = req.body;
 
-        if (!email || !password) {
-            res.status(400).send('Please fill all required fields');
-        } else {
-            const user = await Users.findOne({ email });
-            if (!user) {
-                res.status(400).send('User email or password is incorrect');
-            } else {
-                const validateUser = await bcryptjs.compare(password, user.password);
-                if (!validateUser) {
-                    res.status(400).send('User email or password is incorrect');
-                } else {
-                    const payload = {
-                        userId: user._id,
-                        email: user.email
-                    }
-                    const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'THIS_IS_A_JWT_SECRET_KEY';
+//         if (!email || !password) {
+//             res.status(400).send('Please fill all required fields');
+//         } else {
+//             const user = await Users.findOne({ email });
+//             if (!user) {
+//                 res.status(400).send('User email or password is incorrect');
+//             } else {
+//                 const validateUser = await bcryptjs.compare(password, user.password);
+//                 if (!validateUser) {
+//                     res.status(400).send('User email or password is incorrect');
+//                 } else {
+//                     const payload = {
+//                         userId: user._id,
+//                         email: user.email
+//                     }
+//                     const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'THIS_IS_A_JWT_SECRET_KEY';
 
-                    jwt.sign(payload, JWT_SECRET_KEY, { expiresIn: 84600 }, async (err, token) => {
-                        await Users.updateOne({ _id: user._id }, {
-                            $set: { token }
-                        })
-                        user.save();
-                        return res.status(200).json({ user: { id: user._id, email: user.email, fullName: user.fullName }, token: token })
-                    })
-                }
-            }
-        }
+//                     jwt.sign(payload, JWT_SECRET_KEY, { expiresIn: 84600 }, async (err, token) => {
+//                         await Users.updateOne({ _id: user._id }, {
+//                             $set: { token }
+//                         })
+//                         user.save();
+//                         return res.status(200).json({ user: { id: user._id, email: user.email, fullName: user.fullName }, token: token })
+//                     })
+//                 }
+//             }
+//         }
 
-    } catch (error) {
-        console.log(error, 'Error')
-    }
-})
+//     } catch (error) {
+//         console.log(error, 'Error')
+//     }
+// })
 
 app.post('/api/conversation', async (req, res) => {
     try {

@@ -28,7 +28,21 @@ const Dashboard = () => {
 	// 	  setActiveUsers(users);
 	// 	});
 	//   }, []);
+	 
+	const handleLogout = () =>  {
+		socket?.emit('logout', user?.id);
+
+		socket?.on('logoutUser', (msg) => {
+		  console.log('activeUsers :>> ', msg);
+		  localStorage.removeItem('user:token')
+		  localStorage.removeItem('user:detail')
+		  window.location.reload()
+		  navigate('/users/sign_in')
+		  alert(msg);
+		});
 	  
+	}
+
 	useEffect(() => {
 		socket?.emit('addUser', user?.id);
 		socket?.on('getUsers', (users) => {
@@ -127,12 +141,9 @@ const Dashboard = () => {
 						<h3 className='text-2xl'>{user?.fullName}</h3>
 						<p className='text-lg font-light'>My Account</p>
 						<div>
-							<MdLogout className='text-2xl cursor-pointer' onClick={() => {
-								localStorage.removeItem('user:token')
-								localStorage.removeItem('user:detail')
-								window.location.reload()
-								navigate('/users/sign_in')
-							}} />
+							<MdLogout className='text-2xl cursor-pointer' onClick={
+								handleLogout
+							} />
 						</div>
 					</div>
 				</div>
