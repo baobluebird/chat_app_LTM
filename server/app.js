@@ -50,11 +50,6 @@ io.on('connection', socket => {
             users.push(user);
             io.emit('getUsers', users);
         }
-        // }else{
-        //     console.log('User already exists');
-        //     const userAlready = {userId, socketId: socket.id}
-        //     io.emit('UserAlreadyExists', userAlready);
-        // }
     });
 
     socket.on('UserLogin', async data => {
@@ -93,7 +88,7 @@ io.on('connection', socket => {
             const user = await Users.findOne({ email });
     
             if (!user) {
-                messageFromServer = 'User email is incorrect';
+                messageFromServer = 'User is not exist';
                 return { messageFromServer };
             }
     
@@ -139,22 +134,25 @@ io.on('connection', socket => {
         const msg = await Register(fullName, email, password);
         console.log('msg :>> ', msg);
         io.to(socket.id).emit('checkUserRegister', msg);
-    });
+        if(msg == 'User registered successfully'){
+            io.emit('getUsers', users);
+        }
+    }); 
 
     const Register = async (fullName, email, password) => {
         let messageFromServer = '';
-    
+     
         if (!fullName || !email || !password) {
             messageFromServer = "Please fill all required fields";
         } else {
             try {
                 const isAlreadyExist = await Users.findOne({ email });
     
-                if (isAlreadyExist) {
-                    messageFromServer = 'User already exists';
+                if (isAlreadyExist) { 
+                    messageFromServer = 'User already exists'; 
                 } else {
                     const newUser = new Users({ fullName, email });
-    
+     
                     // Hashing the password using bcryptjs
                     const hashedPassword = await bcryptjs.hash(password, 10);
                     newUser.set('password', hashedPassword);
@@ -182,7 +180,6 @@ io.on('connection', socket => {
         userCheck = userCheck.filter(user => user.toString() !== stringUserId);
     
         console.log('userCheck Length when logout:>> ', userCheck);
-        // console.log('userCheck :>> ', userCheck);
     
         io.to(socket.id).emit('logoutUser', msg);
     });
@@ -224,76 +221,6 @@ app.get('/', (req, res) => {
     res.send('Welcome');
 })
 
-// app.post('/api/register', async (req, res, next) => {
-//     try {
-//         const { fullName, email, password } = req.body;
-
-//         if (!fullName || !email || !password) {
-//             res.status(400).json({
-//                 message:'Please fill all required fields'
-//             });
-//         } else {
-//             const isAlreadyExist = await Users.findOne({ email });
-//             if (isAlreadyExist) {
-//                 res.status(400).json({
-//                     message:'User already exists'
-//                 });
-//             } else {
-//                 const newUser = new Users({ fullName, email });
-//                 bcryptjs.hash(password, 10, (err, hashedPassword) => {
-//                     newUser.set('password', hashedPassword);
-//                     newUser.save();
-//                     next();
-//                 })
-//                 return res.status(200).json({
-//                     message:'User created successfully',
-//                     user: newUser._id
-//                 });
-//             }
-//         }
-
-//     } catch (error) {
-//         console.log(error, 'Error')
-//     }
-// })
-
-// app.post('/api/login', async (req, res, next) => {
-//     try {
-//         const { email, password } = req.body;
-
-//         if (!email || !password) {
-//             res.status(400).send('Please fill all required fields');
-//         } else {
-//             const user = await Users.findOne({ email });
-//             if (!user) {
-//                 res.status(400).send('User email or password is incorrect');
-//             } else {
-//                 const validateUser = await bcryptjs.compare(password, user.password);
-//                 if (!validateUser) {
-//                     res.status(400).send('User email or password is incorrect');
-//                 } else {
-//                     const payload = {
-//                         userId: user._id,
-//                         email: user.email
-//                     }
-//                     const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY || 'THIS_IS_A_JWT_SECRET_KEY';
-
-//                     jwt.sign(payload, JWT_SECRET_KEY, { expiresIn: 84600 }, async (err, token) => {
-//                         await Users.updateOne({ _id: user._id }, {
-//                             $set: { token }
-//                         })
-//                         user.save();
-//                         return res.status(200).json({ user: { id: user._id, email: user.email, fullName: user.fullName }, token: token })
-//                     })
-//                 }
-//             }
-//         }
-
-//     } catch (error) {
-//         console.log(error, 'Error')
-//     }
-// })
-
 app.post('/api/conversation', async (req, res) => {
     try {
         const { senderId, receiverId } = req.body;
@@ -323,7 +250,7 @@ app.get('/api/conversations/:userId', async (req, res) => {
 app.post('/api/message', async (req, res) => {
     try {
         const { conversationId, senderId, message, receiverId = '' } = req.body;
-        if (!senderId || !message) return res.status(400).send('Please fill all required fields')
+        if (!senderId || !message) return 'Please fill all required fields'
         if (conversationId === 'new' && receiverId) {
             const newCoversation = new Conversations({ members: [senderId, receiverId] });
             await newCoversation.save();
