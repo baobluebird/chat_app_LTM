@@ -20,17 +20,9 @@ const Dashboard = () => {
 	useEffect(() => {
 		setSocket(io('http://localhost:8080'))
 	}, [])
-
-	// useEffect(() => {
-	// 	socket?.on('getUsers', (users) => {
-	// 	  console.log('activeUsers :>> ', users);
-	// 	  setActiveUsers(users);
-	// 	});
-	//   }, []);
 	 
 	const handleLogout = () =>  {
 		socket?.emit('logout', user?.id);
-
 		socket?.on('logoutUser', (msg) => {
 		  console.log('activeUsers :>> ', msg);
 		  localStorage.removeItem('user:token')
