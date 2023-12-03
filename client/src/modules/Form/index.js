@@ -63,26 +63,6 @@ const Form = ({
       });
 
 
-      // const res = await fetch(`http://localhost:8000/api/${isSignInPage ? 'login' : 'register'}`, {
-      //     method: 'POST',
-      //     headers: {
-      //         'Content-Type': 'application/json'
-      //     },
-      //     body: JSON.stringify(data)
-      // })
-
-      // if (res.status === 400) {
-      //   alert("Invalid credentials");
-      // } else {
-      //   const resData = await res.json();
-      //   if (resData.token) {
-      //     localStorage.setItem("user:token", resData.token);
-      //     localStorage.setItem("user:detail", JSON.stringify(resData.user));
-      //     navigate("/");
-      //   }else{
-
-      //   }
-      // }
   };
 
   return (
