@@ -74,7 +74,7 @@ const Dashboard = () => {
 
 	useEffect(() => {
 		const fetchUsers = async () => {
-			const res = await fetch(`http://localhost:8000/api/users/${user?.id}`, {
+			const res = await fetch(`http://localhost:8000/api/users`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json',

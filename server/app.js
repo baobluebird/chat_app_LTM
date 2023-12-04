@@ -295,10 +295,9 @@ app.get('/api/message/:conversationId', async (req, res) => {
     }
 })
 
-app.get('/api/users/:userId', async (req, res) => {
+app.get('/api/users', async (req, res) => {
     try {
-        const userId = req.params.userId;
-        const users = await Users.find({ _id: { $ne: userId } });
+        const users = await Users.find();
         const usersData = Promise.all(users.map(async (user) => {
             return { user: { email: user.email, fullName: user.fullName, receiverId: user._id } }
         }))
